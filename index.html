@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/style.css">
+    <title>CodesEditor</title>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="header__inner">
+                <a href="#" class="logo">
+                    <img src="./images/logo.png" alt="лого">
+                </a>
+                <div class="input-wrapper">
+                    <input type="text" id="codeInput" placeholder="Введите код и нажмите Enter..." />
+                    <input type="number" id="packageCount" min="1" value="1" title="Количество упаковок" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="total-packages">
+        Всего упаковок: <span id="totalPackages">0</span>
+    </div>
+
+    <div class="containers">
+    <div class="box" id="aggregationBox">
+        <h2>Агрегационные коды <span class="counter" id="aggCount">0</span></h2>
+        <div class="code-header">
+        <span>№</span>
+        <span>Код</span>
+        <span>Упаковок</span>
+        <span></span>
+        </div>
+        <div class="code-list" id="aggregationList"></div>
+        <div class="buttons">
+            <button class="copy-btn">Скопировать</button>
+            <button class="clear-btn">Очистить</button>
+            <div class="export">
+                <button id="exportExcelBtn">Скачать Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="box" id="markingBox">
+        <h2>Маркировочные коды <span class="counter" id="markCount">0</span></h2>
+        <div class="running-counter-wrapper">
+            Счётчик: <span id="markSerial">0</span>
+            <button id="resetSerialBtn" class="reset-btn">Сбросить</button>
+        </div>
+        <div class="code-header">
+        <span>№</span>
+        <span>Код</span>
+        <span></span>
+        <span></span>
+        </div>
+        <div class="code-list" id="markingList"></div>
+        <div class="buttons">
+            <button class="copy-btn">Скопировать</button>
+            <button class="clear-btn">Очистить</button>
+            <div class="export">
+                <button id="exportExcelBtn">Скачать Excel</button>
+            </div>
+        </div>
+    </div>
+    </div>
+    
+    <footer class="footer">
+        <p>Created by Artyom Maksudov</p>
+    </footer>
+
+    <script src="./js/main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>
