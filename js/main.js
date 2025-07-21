@@ -16,18 +16,11 @@ window.onload = function () {
 
   const allCodes = new Set();
 
-  // Загрузка сохранённых значений
   const savedData = JSON.parse(localStorage.getItem('savedCodes'));
   const savedCount = localStorage.getItem('packageCount');
-  const savedTotal = localStorage.getItem('totalPackages');
 
   if (savedCount && !isNaN(savedCount)) {
     packageCountInput.value = savedCount;
-  }
-
-  if (savedTotal && !isNaN(savedTotal)) {
-    totalPackages = parseInt(savedTotal);
-    updateTotalPackages();
   }
 
   if (savedData) {
@@ -51,55 +44,61 @@ window.onload = function () {
     updateCounters();
   }
 
-  codeInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      const rawCode = this.value.trim();
+codeInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    const rawCode = this.value.trim();
 
-      if (rawCode.length < 6) {
-        alert("❌ Код должен содержать минимум 6 символов.");
-        return;
-      }
-
-      if (/^[a-zA-Z]/.test(rawCode)) {
-        alert("❌ Код не должен начинаться с буквы.");
-        return;
-      }
-
-      const onlyDigits = /^\d+$/;
-      const hasLetter = /[a-zA-Z]/;
-
-      if (onlyDigits.test(rawCode)) {
-        const processed = rawCode.replace(/^00/, '');
-        if (allCodes.has(processed)) {
-          alert("❌ Такой код уже был введён ранее.");
-          return;
-        }
-        const count = parseInt(packageCountInput.value) || 1;
-        addCode(aggregationList, processed, true, count);
-        totalPackages += count;
-        updateTotalPackages();
-        allCodes.add(processed);
-      } else if (hasLetter.test(rawCode)) {
-        const processed = rawCode.split('91UZF')[0];
-        if (allCodes.has(processed)) {
-          alert("❌ Такой код уже был введён ранее.");
-          return;
-        }
-        addCode(markingList, processed, false);
-        markSerialCounter++;
-        updateSerialCounter();
-        totalPackages += 1;
-        updateTotalPackages();
-        allCodes.add(processed);
-      } else {
-        alert("❌ Код должен состоять только из цифр (агрегация) или содержать хотя бы одну букву (маркировка).");
-        return;
-      }
-
-      saveToLocalStorage();
+    if (rawCode.length < 6) {
+      alert("❌ Код должен содержать минимум 6 символов.");
       this.value = '';
+      return;
     }
-  });
+
+    if (/^[a-zA-Z]/.test(rawCode)) {
+      alert("❌ Код не должен начинаться с буквы.");
+      this.value = '';
+      return;
+    }
+
+    const onlyDigits = /^\d+$/;
+    const hasLetter = /[a-zA-Z]/;
+
+    if (onlyDigits.test(rawCode)) {
+      const processed = rawCode.replace(/^00/, '');
+      if (allCodes.has(processed)) {
+        alert("❌ Такой код уже был введён ранее.");
+        this.value = '';
+        return;
+      }
+      const count = parseInt(packageCountInput.value) || 1;
+      addCode(aggregationList, processed, true, count);
+      totalPackages += count;
+      updateTotalPackages();
+      allCodes.add(processed);
+    } else if (hasLetter.test(rawCode)) {
+      const processed = rawCode.split('91UZF')[0];
+      if (allCodes.has(processed)) {
+        alert("❌ Такой код уже был введён ранее.");
+        this.value = '';
+        return;
+      }
+      addCode(markingList, processed, false);
+      markSerialCounter++;
+      updateSerialCounter();
+      totalPackages += 1;
+      updateTotalPackages();
+      allCodes.add(processed);
+    } else {
+      alert("❌ Код должен состоять только из цифр (агрегация) или содержать хотя бы одну букву (маркировка).");
+      this.value = '';
+      return;
+    }
+
+    saveToLocalStorage();
+    this.value = '';
+  }
+});
+
 
   function addCode(container, code, isAgg, count = '') {
     const item = document.createElement('div');
@@ -165,7 +164,6 @@ window.onload = function () {
 
     localStorage.setItem('savedCodes', JSON.stringify(data));
     localStorage.setItem('packageCount', packageCountInput.value);
-    localStorage.setItem('totalPackages', totalPackages.toString());
   }
 
   function updateSerialCounter() {
@@ -266,6 +264,9 @@ window.onload = function () {
 };
 
 document.getElementById('exportExcelBtn').addEventListener('click', () => {
+  const aggregationList = document.getElementById('aggregationList');
+  const markingList = document.getElementById('markingList');
+
   const aggRows = aggregationList.querySelectorAll('.code-row');
   const markRows = markingList.querySelectorAll('.code-row');
 
@@ -297,5 +298,3 @@ document.getElementById('exportExcelBtn').addEventListener('click', () => {
   const dateStr = today.toISOString().slice(0, 10);
   XLSX.writeFile(wb, `Коды_${dateStr}.xlsx`);
 });
-
-
