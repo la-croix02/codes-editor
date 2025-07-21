@@ -8,12 +8,20 @@ window.onload = function () {
   const totalPackagesSpan = document.getElementById('totalPackages');
   const markSerialSpan = document.getElementById('markSerial');
   const resetSerialBtn = document.getElementById('resetSerialBtn');
+  const productNameInput = document.getElementById('productName');
+  const productSeriesInput = document.getElementById('productSeries');
+  const saveRecordBtn = document.getElementById('saveRecordBtn');
+  const downloadRecordsBtn = document.getElementById('downloadRecordsBtn');
+  const clearRecordsBtn = document.getElementById('clearRecordsBtn');
+  const recordCountSpan = document.getElementById('recordCount');
+  const recordList = document.getElementById('recordList');
+
+  let savedRecords = JSON.parse(localStorage.getItem('savedRecords') || '[]');
+  updateRecordCounter();
+  renderRecordList();
 
   let markSerialCounter = 0;
-  let aggCounter = 1;
-  let markCounter = 1;
   let totalPackages = 0;
-
   const allCodes = new Set();
 
   const savedData = JSON.parse(localStorage.getItem('savedCodes'));
@@ -44,61 +52,54 @@ window.onload = function () {
     updateCounters();
   }
 
-codeInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') {
-    const rawCode = this.value.trim();
+  codeInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      const rawCode = this.value.trim();
 
-    if (rawCode.length < 6) {
-      alert("❌ Код должен содержать минимум 6 символов.");
-      this.value = '';
-      return;
-    }
-
-    if (/^[a-zA-Z]/.test(rawCode)) {
-      alert("❌ Код не должен начинаться с буквы.");
-      this.value = '';
-      return;
-    }
-
-    const onlyDigits = /^\d+$/;
-    const hasLetter = /[a-zA-Z]/;
-
-    if (onlyDigits.test(rawCode)) {
-      const processed = rawCode.replace(/^00/, '');
-      if (allCodes.has(processed)) {
-        alert("❌ Такой код уже был введён ранее.");
+      if (rawCode.length < 6 || /^[a-zA-Z]/.test(rawCode)) {
+        alert("❌ Неверный формат кода.");
         this.value = '';
         return;
       }
-      const count = parseInt(packageCountInput.value) || 1;
-      addCode(aggregationList, processed, true, count);
-      totalPackages += count;
-      updateTotalPackages();
-      allCodes.add(processed);
-    } else if (hasLetter.test(rawCode)) {
-      const processed = rawCode.split('91UZF')[0];
-      if (allCodes.has(processed)) {
-        alert("❌ Такой код уже был введён ранее.");
+
+      const onlyDigits = /^\d+$/;
+      const hasLetter = /[a-zA-Z]/;
+
+      if (onlyDigits.test(rawCode)) {
+        const processed = rawCode.replace(/^00/, '');
+        if (allCodes.has(processed)) {
+          alert("❌ Такой код уже был введён ранее.");
+          this.value = '';
+          return;
+        }
+        const count = parseInt(packageCountInput.value) || 1;
+        addCode(aggregationList, processed, true, count);
+        totalPackages += count;
+        updateTotalPackages();
+        allCodes.add(processed);
+      } else if (hasLetter.test(rawCode)) {
+        const processed = rawCode.split('91UZF')[0];
+        if (allCodes.has(processed)) {
+          alert("❌ Такой код уже был введён ранее.");
+          this.value = '';
+          return;
+        }
+        addCode(markingList, processed, false);
+        markSerialCounter++;
+        updateSerialCounter();
+        totalPackages += 1;
+        updateTotalPackages();
+        allCodes.add(processed);
+      } else {
+        alert("❌ Код должен быть числовым или содержать хотя бы одну букву.");
         this.value = '';
         return;
       }
-      addCode(markingList, processed, false);
-      markSerialCounter++;
-      updateSerialCounter();
-      totalPackages += 1;
-      updateTotalPackages();
-      allCodes.add(processed);
-    } else {
-      alert("❌ Код должен состоять только из цифр (агрегация) или содержать хотя бы одну букву (маркировка).");
+
+      saveToLocalStorage();
       this.value = '';
-      return;
     }
-
-    saveToLocalStorage();
-    this.value = '';
-  }
-});
-
+  });
 
   function addCode(container, code, isAgg, count = '') {
     const item = document.createElement('div');
@@ -113,12 +114,7 @@ codeInput.addEventListener('keydown', function (e) {
 
     item.querySelector('.remove-btn').addEventListener('click', () => {
       const amount = parseInt(item.querySelector('.amount')?.textContent || '1');
-      if (isAgg) {
-        totalPackages -= amount;
-      } else {
-        totalPackages -= 1;
-      }
-
+      totalPackages -= isAgg ? amount : 1;
       container.removeChild(item);
       allCodes.delete(code);
       renumberCodes(container);
@@ -132,37 +128,19 @@ codeInput.addEventListener('keydown', function (e) {
   }
 
   function renumberCodes(container) {
-    const rows = container.querySelectorAll('.code-row');
-    rows.forEach((row, index) => {
-      const indexSpan = row.querySelector('.index');
-      if (indexSpan) {
-        indexSpan.textContent = index + 1;
-      }
+    container.querySelectorAll('.code-row').forEach((row, index) => {
+      row.querySelector('.index').textContent = index + 1;
     });
-
-    if (container.id === 'aggregationList') {
-      aggCounter = rows.length + 1;
-    } else if (container.id === 'markingList') {
-      markCounter = rows.length + 1;
-    }
   }
 
   function saveToLocalStorage() {
-    const aggregationCodes = Array.from(aggregationList.querySelectorAll('.code-row')).map(row => {
-      return {
-        code: row.querySelector('.code')?.textContent?.trim(),
-        count: row.querySelector('.amount')?.textContent?.trim()
-      };
-    });
-
+    const aggregationCodes = Array.from(aggregationList.querySelectorAll('.code-row')).map(row => ({
+      code: row.querySelector('.code')?.textContent?.trim(),
+      count: parseInt(row.querySelector('.amount')?.textContent?.trim() || '1')
+    }));
     const markingCodes = Array.from(markingList.querySelectorAll('.code')).map(el => el.textContent.trim());
 
-    const data = {
-      aggregation: aggregationCodes,
-      marking: markingCodes
-    };
-
-    localStorage.setItem('savedCodes', JSON.stringify(data));
+    localStorage.setItem('savedCodes', JSON.stringify({ aggregation: aggregationCodes, marking: markingCodes }));
     localStorage.setItem('packageCount', packageCountInput.value);
   }
 
@@ -170,92 +148,131 @@ codeInput.addEventListener('keydown', function (e) {
     markSerialSpan.textContent = markSerialCounter;
   }
 
-  resetSerialBtn.addEventListener('click', () => {
-    markSerialCounter = 0;
-    updateSerialCounter();
-  });
-
-  packageCountInput.addEventListener('input', () => {
-    const val = parseInt(packageCountInput.value);
-    if (!isNaN(val) && val > 0) {
-      localStorage.setItem('packageCount', val);
-    }
-  });
-
   function updateTotalPackages() {
     totalPackagesSpan.textContent = totalPackages;
   }
 
   function updateCounters() {
-    const aggCount = aggregationList.querySelectorAll('.code-row').length;
-    const markCount = markingList.querySelectorAll('.code-row').length;
-
-    flashUpdate(aggCountSpan, ` ${aggCount}`);
-    flashUpdate(markCountSpan, ` ${markCount}`);
+    aggCountSpan.textContent = aggregationList.querySelectorAll('.code-row').length;
+    markCountSpan.textContent = markingList.querySelectorAll('.code-row').length;
   }
 
-  function flashUpdate(element, text) {
-    element.textContent = text;
-    element.classList.add('flash');
-    setTimeout(() => {
-      element.classList.remove('flash');
-    }, 400);
+  saveRecordBtn.addEventListener('click', () => {
+    const name = productNameInput.value.trim();
+    const series = productSeriesInput.value.trim();
+    const aggCodes = Array.from(aggregationList.querySelectorAll('.code-row')).map(row => ({
+      code: row.querySelector('.code').textContent.trim(),
+      count: parseInt(row.querySelector('.amount').textContent || '1')
+    }));
+    const markCodes = Array.from(markingList.querySelectorAll('.code-row')).map(row => row.querySelector('.code').textContent.trim());
+
+    if (!aggCodes.length && !markCodes.length) {
+      alert("Нет данных для записи.");
+      return;
+    }
+
+    const quantity = aggCodes.reduce((sum, a) => sum + a.count, 0) + markCodes.length;
+
+    savedRecords.push({ name, series, aggregation: aggCodes, marking: markCodes, quantity });
+    localStorage.setItem('savedRecords', JSON.stringify(savedRecords));
+    updateRecordCounter();
+    renderRecordList();
+
+    productNameInput.value = '';
+    productSeriesInput.value = '';
+    aggregationList.innerHTML = '';
+    markingList.innerHTML = '';
+    totalPackages = 0;
+    markSerialCounter = 0;
+    allCodes.clear();
+
+    updateTotalPackages();
+    updateCounters();
+    updateSerialCounter();
+    saveToLocalStorage();
+  });
+
+  function renderRecordList() {
+    recordList.innerHTML = '';
+    savedRecords.forEach(rec => {
+      const div = document.createElement('div');
+      div.textContent = `${rec.name || 'Без названия'} ${rec.series || 'Без серии'}`;
+      recordList.appendChild(div);
+    });
   }
 
-  const boxes = document.querySelectorAll('.box');
+  downloadRecordsBtn.addEventListener('click', () => {
+    if (!savedRecords.length) {
+      alert('Нет записей для скачивания.');
+      return;
+    }
 
-  boxes.forEach(box => {
-    const copyBtn = box.querySelector('.copy-btn');
-    const clearBtn = box.querySelector('.clear-btn');
-    const codeList = box.querySelector('.code-list');
+    const wb = XLSX.utils.book_new();
+    const wsData = [];
 
-    copyBtn.addEventListener('click', () => {
-      const rows = codeList.querySelectorAll('.code-row');
-      let codes = [];
+    savedRecords.forEach(rec => {
+      if (rec.name || rec.series) {
+        wsData.push(['Наименование товара', rec.name || '']);
+        wsData.push(['Серия', rec.series || '']);
+        wsData.push(['Количество', rec.quantity]);
+      } 
 
-      rows.forEach(row => {
-        const code = row.querySelector('.code')?.textContent?.trim();
-        if (code) codes.push(code);
-      });
-
-      if (codes.length) {
-        navigator.clipboard.writeText(codes.join('\n')).then(() => {
-          alert('Коды скопированы в буфер обмена!');
-        }).catch(err => {
-          alert('Ошибка копирования: ' + err);
-        });
-      } else {
-        alert('Нет кодов для копирования.');
+      if (rec.aggregation.length) {
+        if (rec.name || rec.series) wsData.push(['Оригиналы:']);
+        rec.aggregation.forEach(a => wsData.push([a.code]));
       }
+
+      if (rec.marking.length) {
+        if (rec.name || rec.series) wsData.push(['Штучные:']);
+        rec.marking.forEach(m => wsData.push([m]));
+      }
+
+      wsData.push([]);
     });
 
-    clearBtn.addEventListener('click', () => {
-      const rows = codeList.querySelectorAll('.code-row');
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Записи');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Товары_${dateStr}.xlsx`);
+  });
 
+  clearRecordsBtn.addEventListener('click', () => {
+    if (confirm('Удалить все записи?')) {
+      savedRecords = [];
+      localStorage.removeItem('savedRecords');
+      updateRecordCounter();
+      renderRecordList();
+    }
+  });
+
+  function updateRecordCounter() {
+    recordCountSpan.textContent = savedRecords.length;
+  }
+
+  // Restore copy and clear buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const list = btn.closest('.box').querySelector('.code-list');
+      const codes = Array.from(list.querySelectorAll('.code')).map(span => span.textContent.trim()).join('\n');
+      navigator.clipboard.writeText(codes).then(() => alert('Коды скопированы в буфер обмена!'));
+    });
+  });
+
+  document.querySelectorAll('.clear-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const list = btn.closest('.box').querySelector('.code-list');
+      const rows = list.querySelectorAll('.code-row');
       rows.forEach(row => {
         const code = row.querySelector('.code')?.textContent?.trim();
         const amount = parseInt(row.querySelector('.amount')?.textContent || '1');
-
-        if (code) {
-          allCodes.delete(code);
-          if (box.id === 'aggregationBox') {
-            totalPackages -= amount;
-          } else {
-            totalPackages -= 1;
-          }
+        if (btn.closest('#aggregationBox')) {
+          totalPackages -= amount;
+        } else {
+          totalPackages -= 1;
         }
+        allCodes.delete(code);
+        row.remove();
       });
-
-      codeList.innerHTML = '';
-
-      if (box.id === 'aggregationBox') {
-        aggCounter = 1;
-      } else if (box.id === 'markingBox') {
-        markCounter = 1;
-        markSerialCounter = 0;
-        updateSerialCounter();
-      }
-
       updateCounters();
       updateTotalPackages();
       saveToLocalStorage();
@@ -263,38 +280,3 @@ codeInput.addEventListener('keydown', function (e) {
   });
 };
 
-document.getElementById('exportExcelBtn').addEventListener('click', () => {
-  const aggregationList = document.getElementById('aggregationList');
-  const markingList = document.getElementById('markingList');
-
-  const aggRows = aggregationList.querySelectorAll('.code-row');
-  const markRows = markingList.querySelectorAll('.code-row');
-
-  const aggData = [];
-  aggRows.forEach(row => {
-    const code = row.querySelector('.code')?.textContent.trim();
-    if (code) aggData.push([code]);
-  });
-
-  const markData = [];
-  markRows.forEach(row => {
-    const code = row.querySelector('.code')?.textContent.trim();
-    if (code) markData.push([code]);
-  });
-
-  const wb = XLSX.utils.book_new();
-
-  if (aggData.length) {
-    const ws1 = XLSX.utils.aoa_to_sheet(aggData);
-    XLSX.utils.book_append_sheet(wb, ws1, 'Агрегационные');
-  }
-
-  if (markData.length) {
-    const ws2 = XLSX.utils.aoa_to_sheet(markData);
-    XLSX.utils.book_append_sheet(wb, ws2, 'Маркировочные');
-  }
-
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `Коды_${dateStr}.xlsx`);
-});

@@ -25,11 +25,11 @@
         <div class="container">
             <div class="product-info__inner">
             <label>
-                Название товара:
+                Название товара: 
                 <input type="text" id="productName" placeholder="Введите название..." />
             </label>
             <label>
-                Серия:
+                Серия: 
                 <input type="text" id="productSeries" placeholder="Введите серию..." />
             </label>
             </div>
@@ -53,9 +53,6 @@
         <div class="buttons">
             <button class="copy-btn">Скопировать</button>
             <button class="clear-btn">Очистить</button>
-            <div class="export">
-                <button id="exportExcelBtn">Скачать Excel</button>
-            </div>
         </div>
     </div>
 
@@ -75,12 +72,20 @@
         <div class="buttons">
             <button class="copy-btn">Скопировать</button>
             <button class="clear-btn">Очистить</button>
-            <div class="export">
-                <button id="exportExcelBtn">Скачать Excel</button>
-            </div>
         </div>
     </div>
     </div>
+
+     <div class="container record-controls">
+        <div class="record-buttons">
+            <button id="saveRecordBtn">Записать</button>
+            <button id="downloadRecordsBtn">Скачать Excel</button>
+            <button id="clearRecordsBtn">Очистить все записи</button>
+            <div class="counter">Всего записей: <span id="recordCount">0</span></div>
+        </div>
+        <div id="recordList"></div>
+    </div>
+
     
     <footer class="footer">
         <p>Created by Artyom Maksudov</p>
